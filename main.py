@@ -1,8 +1,7 @@
 import json
 import math
-# from drawer import Drawer
-
-# drawer = Drawer()
+#from drawer import Drawer
+#drawer = Drawer()
 
 def length(u):
     return (u[0]**2 + u[1]**2)**0.5
@@ -59,12 +58,19 @@ class Strategy:
             (self.w/step, self.h/step* (step-1)),   
         ]
 
-        self.corners = [
-            (0, self.h),
-            (self.w, self.h),
-            (self.w, 0),
-            (0,0)
-        ]
+        # self.corners = [
+        #     (0, self.h),
+        #     (self.w, self.h),
+        #     (self.w, 0),
+        #     (0,0),
+        #     (0, self.h/2),
+        #     (self.w/2, 0),
+        #     (self.w, self.h/2),
+        #     (self.w/2,self.h)
+        # ]
+
+        self.last_danger = None
+        self.danger_time = 0
 
         self.target = None
         while True:
@@ -92,16 +98,32 @@ class Strategy:
     # def save(self, data):
     #     with open('data.txt', 'w') as d:
     #         json.dump(data, d)
-            
+    def escape(self, e):
+        min_value = 1000000
+        escape_point = (self.w/2, self.h/2)
+        r = int(self.me.radius)*3
+        alfa = 0
+        while alfa<=math.pi*2:
+            x = self.me.pos[0]+r*math.cos(alfa)
+            y = self.me.pos[1]+ r*math.sin(alfa)
+            #drawer.add(x,y, 5)
+            #corner_value = min( (dist(corner, (x,y)) for corner in self.corners) )/2 
+            bound_value = max([abs(x - self.w/2), abs(y-self.h/2)])
+            value =  100/dist(e.pos, (x,y))+ bound_value/100#  dist((self.w/2, self.h/2),(x,y))/1000 +   100/corner_value
+
+            if value< min_value:
+                escape_point = (int(x), int(y))
+                min_value = value
+            alfa+=math.pi/4                                      
+        return {'X': escape_point[0] , 'Y':  escape_point[1], 'Debug': 'escape to '+str(escape_point)} 
+
     def on_tick(self, data, config):
         #try:
             mine, objects = data.get('Mine'), data.get('Objects')
-            
             if mine:
                 players = []
                 for fragment in mine:
                     players.append(Player(fragment))
-                
                 foods, enemies, viruses = self.parse(objects)     
                 self.me = None
                 enemy = None
@@ -110,46 +132,25 @@ class Strategy:
                 if len(players)==0:
                     return
                 self.me = max(players, key = lambda p: p.mass)
-
+                
                 if len(enemies)>0:
+                    # #test
+                    # self.last_danger = enemies[0]
+                    # self.danger_time = 0
+                    # #
                     danger = []
                     for e in enemies:
                         if e.mass / self.me.mass >= 1.19:
                             danger.append(e)
                     e = min(danger, default=None, key = lambda d: dist(d.pos, self.me.pos))
                     if e:
-                        max_value = -10
-                        escape_point = (self.w/2, self.h/2)
-                        r = int(self.me.radius)
-                        for x in range(-r, r, r):
-                            for y in range(-r, r, r):
-                                if x==0 and y==0:
-                                    continue
-                                point = add((x,y), self.me.pos)                                
-                                value = (min( (dist(corner, point) for corner in self.corners) )  + dist(e.pos, point))/2
-                                if value> max_value:
-                                    escape_point = point
-                                    max_value = value
-                        return {'X': int( escape_point[0] ), 'Y': int(  escape_point[1]), 'Debug': 'escape to '+str(escape_point)} 
+                        self.last_danger = e
+                        self.danger_time = 0
+                        return self.escape(e)
                         
-
-                # if len(danger_enemies)>0:
-                #     r = self.me.radius*1.5
-                #     cells = dict()
-                #     max_min_dist = 0
-                #     escape_point = ()
-                #     alfa =0
-                #     while alfa<=math.pi*2:
-                #         x = self.me.pos[0]+r*math.cos(alfa)
-                #         y = self.me.pos[1]+ r*math.sin(alfa)
-
-                #         drawer.add(x,y, 5)
-                #         min_dist = dist(min(danger_enemies, key=lambda e: dist(e.pos, (x,y))).pos, (x,y))
-                #         if min_dist>max_min_dist:
-                #             escape_point = (x,y)
-                #             max_min_dist = min_dist
-                #         alfa+=math.pi/4   
-                #     return {'X':escape_point[0], 'Y':escape_point[1]}
+                self.danger_time+=1
+                if self.danger_time<50 and self.last_danger:
+                    return self.escape(self.last_danger)
 
                 e = min(enemies, default =None, key=lambda e:  dist(e.pos, self.me.pos))
                 if e:
