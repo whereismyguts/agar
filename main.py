@@ -58,6 +58,16 @@ class Strategy:
             (self.w/step, self.h/step* (step-1)),   
         ]
 
+        # self.corners = [
+        #     (0, self.h),
+        #     (self.w, self.h),
+        #     (self.w, 0),
+        #     (0,0),
+        #     (0, self.h/2),
+        #     (self.w/2, 0),
+        #     (self.w, self.h/2),
+        #     (self.w/2,self.h)
+        # ]
 
         self.last_danger = None
         self.danger_time = 0
@@ -89,22 +99,21 @@ class Strategy:
     #     with open('data.txt', 'w') as d:
     #         json.dump(data, d)
     def escape(self, e):
-        max_value = -1
+        min_value = 1000000
         escape_point = (self.w/2, self.h/2)
         r = int(self.me.radius)*3
         alfa = 0
         while alfa<=math.pi*2:
             x = self.me.pos[0]+r*math.cos(alfa)
             y = self.me.pos[1]+ r*math.sin(alfa)
-            alfa+=math.pi/4 
             #drawer.add(x,y, 5)
-            if x<100 or x>self.w-100 or y<100 or y>self.h-100:
-                continue
-            e_dist =  dist(e.pos, (x,y))
+            #corner_value = min( (dist(corner, (x,y)) for corner in self.corners) )/2 
+            bound_value = max([abs(x - self.w/2), abs(y-self.h/2)])
+            value =  100/dist(e.pos, (x,y))+ bound_value/100#  dist((self.w/2, self.h/2),(x,y))/1000 +   100/corner_value
 
-            if e_dist > max_value:
+            if value< min_value:
                 escape_point = (int(x), int(y))
-                max_value = e_dist
+                min_value = value
             alfa+=math.pi/4                                      
         return {'X': escape_point[0] , 'Y':  escape_point[1], 'Debug': 'escape to '+str(escape_point)} 
 
