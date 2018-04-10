@@ -1,7 +1,6 @@
 import json
 import math
 # from drawer import Drawer
-
 # drawer = Drawer()
 
 def length(u):
@@ -94,7 +93,7 @@ class Strategy:
     #         json.dump(data, d)
             
     def on_tick(self, data, config):
-        #try:
+      #  try:
             mine, objects = data.get('Mine'), data.get('Objects')
             
             if mine:
@@ -118,7 +117,7 @@ class Strategy:
                             danger.append(e)
                     e = min(danger, default=None, key = lambda d: dist(d.pos, self.me.pos))
                     if e:
-                        max_value = -10
+                        min_value = 99999
                         escape_point = (self.w/2, self.h/2)
                         r = int(self.me.radius)
                         for x in range(-r, r, r):
@@ -126,10 +125,10 @@ class Strategy:
                                 if x==0 and y==0:
                                     continue
                                 point = add((x,y), self.me.pos)                                
-                                value = (min( (dist(corner, point) for corner in self.corners) )  + dist(e.pos, point))/2
-                                if value> max_value:
+                                value = (min( (dist(corner, point) for corner in self.corners) )  + dist(e.pos, point)
+                                if value< min_value:
                                     escape_point = point
-                                    max_value = value
+                                    min_value = value
                         return {'X': int( escape_point[0] ), 'Y': int(  escape_point[1]), 'Debug': 'escape to '+str(escape_point)} 
                         
 
@@ -182,6 +181,9 @@ class Strategy:
         # except Exception as inst:
         #     with open("Output.txt", "w") as text_file:
         #         print(inst.args, file=text_file)
+            
+            #json.dump(data, d)
+
 
 if __name__ == '__main__':
     Strategy().run()
