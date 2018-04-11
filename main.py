@@ -118,7 +118,7 @@ class Strategy:
         return {'X': escape_point[0] , 'Y':  escape_point[1], 'Debug': 'escape to '+str(escape_point)} 
 
     def on_tick(self, data, config):
-        #try:
+      #  try:
             mine, objects = data.get('Mine'), data.get('Objects')
             if mine:
                 players = []
@@ -144,13 +144,38 @@ class Strategy:
                             danger.append(e)
                     e = min(danger, default=None, key = lambda d: dist(d.pos, self.me.pos))
                     if e:
-                        self.last_danger = e
-                        self.danger_time = 0
-                        return self.escape(e)
+                        min_value = 99999
+                        escape_point = (self.w/2, self.h/2)
+                        r = int(self.me.radius)
+                        for x in range(-r, r, r):
+                            for y in range(-r, r, r):
+                                if x==0 and y==0:
+                                    continue
+                                point = add((x,y), self.me.pos)                                
+                                value = (min( (dist(corner, point) for corner in self.corners) )  + dist(e.pos, point)
+                                if value< min_value:
+                                    escape_point = point
+                                    min_value = value
+                        return {'X': int( escape_point[0] ), 'Y': int(  escape_point[1]), 'Debug': 'escape to '+str(escape_point)} 
                         
-                self.danger_time+=1
-                if self.danger_time<50 and self.last_danger:
-                    return self.escape(self.last_danger)
+
+                # if len(danger_enemies)>0:
+                #     r = self.me.radius*1.5
+                #     cells = dict()
+                #     max_min_dist = 0
+                #     escape_point = ()
+                #     alfa =0
+                #     while alfa<=math.pi*2:
+                #         x = self.me.pos[0]+r*math.cos(alfa)
+                #         y = self.me.pos[1]+ r*math.sin(alfa)
+
+                #         drawer.add(x,y, 5)
+                #         min_dist = dist(min(danger_enemies, key=lambda e: dist(e.pos, (x,y))).pos, (x,y))
+                #         if min_dist>max_min_dist:
+                #             escape_point = (x,y)
+                #             max_min_dist = min_dist
+                #         alfa+=math.pi/4   
+                #     return {'X':escape_point[0], 'Y':escape_point[1]}
 
                 e = min(enemies, default =None, key=lambda e:  dist(e.pos, self.me.pos))
                 if e:
@@ -183,6 +208,9 @@ class Strategy:
         # except Exception as inst:
         #     with open("Output.txt", "w") as text_file:
         #         print(inst.args, file=text_file)
+            
+            #json.dump(data, d)
+
 
 if __name__ == '__main__':
     Strategy().run()
