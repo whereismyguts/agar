@@ -1,0 +1,10 @@
+13/04/2018 09:18:10:[ERROR]message
+Traceback (most recent call last):
+  File "main.py", line 157, in on_tick
+    value = min( (dist(corner, point) for corner in self.corners) )  + dist(e.pos, point)
+AttributeError: 'Strategy' object has no attribute 'corners'
+13/04/2018 09:23:29:[ERROR]message
+Traceback (most recent call last):
+  File "main.py", line 164, in on_tick
+    drawer.draw(foods, enemies, viruses, players)
+UnboundLocalError: local variable 'foods' referenced before assignment
