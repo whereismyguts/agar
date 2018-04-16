@@ -1,8 +1,9 @@
 import json
+import math
 import logging
-from drawer import Drawer
-from operations import add, sub, dist, angle
-drawer = Drawer()
+#from drawer import Drawer
+#drawer = Drawer()
+from operations import sub, dist, angle
 
 
 p_size = 50
@@ -28,7 +29,7 @@ class Strategy:
         step = 4
         self.w, self.h =  config.get('GAME_WIDTH'), config.get('GAME_HEIGHT')
 
-        drawer.init(self.w, self.h, config.get('VIRUS_RADIUS'))
+        #drawer.init(self.w, self.h, config.get('VIRUS_RADIUS'))
 
         self.me = Player()
         self.path = [
@@ -40,17 +41,6 @@ class Strategy:
             (self.w/step, self.h/step),
             (self.w/step * (step-1) , self.h/step * (step-1)),
             (self.w/step, self.h/step* (step-1)),   
-        ]
-
-        self.corners = [
-            (0, self.h),
-            (self.w, self.h),
-            (self.w, 0),
-            (0,0),
-            (0, self.h/2),
-            (self.w/2, 0),
-            (self.w, self.h/2),
-            (self.w/2,self.h)
         ]
 
         self.last_danger = None
@@ -78,7 +68,28 @@ class Strategy:
             if t == 'P':
                 e.append(Unit(obj))
         return f, e, v
-  
+
+    # def save(self, data):
+    #     with open('data.txt', 'w') as d:
+    #         json.dump(data, d)
+    def escape(self, e):
+        min_value = 1000000
+        escape_point = (self.w/2, self.h/2)
+        r = int(self.me.radius)*3
+        alfa = 0
+        while alfa<=math.pi*2:
+            x = self.me.pos[0]+r*math.cos(alfa)
+            y = self.me.pos[1]+ r*math.sin(alfa)
+            #drawer.add(x,y, 5)
+            bound_value = max([abs(x - self.w/2), abs(y-self.h/2)])
+            value =  100/dist(e.pos, (x,y))+ bound_value/100#  dist((self.w/2, self.h/2),(x,y))/1000 +   100/corner_value
+
+            if value< min_value:
+                escape_point = (int(x), int(y))
+                min_value = value
+            alfa+=math.pi/4                                      
+        return {'X': escape_point[0] , 'Y':  escape_point[1], 'Debug': 'escape to '+str(escape_point)} 
+
     def on_tick(self, data, config):
         try:
             mine, objects = data.get('Mine'), data.get('Objects')
@@ -88,7 +99,7 @@ class Strategy:
                     players.append(Player(fragment))
                 foods, enemies, viruses = self.parse(objects)     
                 self.me = None
-                
+
                 if len(players)==0:
                     return
                 self.me = max(players, key = lambda p: p.mass)
@@ -104,19 +115,13 @@ class Strategy:
                             danger.append(e)
                     e = min(danger, default=None, key = lambda d: dist(d.pos, self.me.pos))
                     if e:
-                        min_value = 99999
-                        escape_point = (self.w/2, self.h/2)
-                        r = int(self.me.radius)
-                        for x in range(-r, r, r):
-                            for y in range(-r, r, r):
-                                if x==0 and y==0:
-                                    continue
-                                point = add((x,y), self.me.pos)                                
-                                value = min( (dist(corner, point) for corner in self.corners) )  + dist(e.pos, point)
-                                if value< min_value:
-                                    escape_point = point
-                                    min_value = value
-                        return {'X': int( escape_point[0] ), 'Y': int(  escape_point[1]), 'Debug': 'escape to '+str(escape_point)} 
+                        self.last_danger = e
+                        self.danger_time = 0
+                        return self.escape(e)
+                        
+                self.danger_time+=1
+                if self.danger_time<90 and self.last_danger:
+                    return self.escape(self.last_danger)
 
                 e = min(enemies, default =None, key=lambda e:  dist(e.pos, self.me.pos))
                 if e:
@@ -128,7 +133,11 @@ class Strategy:
 
                 food = min(foods, default =None, key=lambda f: dist(self.me.pos, f.pos))
                 if food:
-                    return {'X': food.pos[0], 'Y':food.pos[1]}      
+                    return {'X': food.pos[0], 'Y':food.pos[1]}
+
+                # v = min(viruses, default =None, key=lambda o: o.sdist)
+                # if v:
+                #     return {'X': self.me.pos[0]*2- v.pos[0], 'Y':  self.me.pos[1]*2 - v.pos[1]}         
                 
                 if not self.target:
                     self.target = min(self.path, key = lambda p: dist(p, self.me.pos))
@@ -138,11 +147,11 @@ class Strategy:
                         self.index+=1
                         if self.index>len(self.path)-1: 
                             self.index = 0
-                        self.target = self.path[self.index]                          
-                          
-                    drawer.draw(foods, enemies, viruses, players)                    
+                        self.target = self.path[self.index]                  
+
+                    # drawer.draw(foods, enemies, viruses, players) 
                     return {'X': self.target[0], 'Y': self.target[1]}
-                    
+
             return {'X': 300, 'Y': 300}
 
         except Exception as e:
